@@ -4,7 +4,7 @@
 # =============================================================================
 # Usage: curl -sSL https://raw.githubusercontent.com/ChrisKildunne/nexhealth-mcp/main/setup.sh | bash
 
-GITHUB_RAW="https://raw.githubusercontent.com/ChrisKildunne/nexhealth-mcp/main/Nexhealth"
+GITHUB_RAW="https://raw.githubusercontent.com/ChrisKildunne/nexhealth-mcp/main"
 INSTALL_DIR="$HOME/Nexhealth"
 CLAUDE_CONFIG_DIR="$HOME/Library/Application Support/Claude"
 CLAUDE_CONFIG_FILE="$CLAUDE_CONFIG_DIR/claude_desktop_config.json"
