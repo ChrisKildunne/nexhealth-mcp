@@ -221,7 +221,7 @@ if [ "$ALL_GOOD" = true ]; then
     echo "  Next steps:"
     echo "  1. Fully quit Claude Desktop (Cmd+Q)"
     echo "  2. Relaunch Claude Desktop"
-    echo '  3. Ask Claude: "Can you check the current session status?"'
+    echo '  3. Ask Claude: "Can you list my NexHealth institutions?"'
     echo ""
 else
     echo -e "${RED}Setup completed with errors. Check items marked ✗ above.${NC}"
