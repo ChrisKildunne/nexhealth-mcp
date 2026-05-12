@@ -1,5 +1,6 @@
 # Workflow: Create a Working Hour (Provider Availability)
 
+<<<<<<< HEAD
 ## What is a Working Hour?
 
 A working hour defines when a provider is available to see patients, and in which operatory. Think of it as a **window of availability** — when the window is open, the provider is available and `get_available_slots` will return slots within that window. When the window is fully booked, the working hour still exists but no available slots are returned because the provider is booked up.
@@ -12,6 +13,10 @@ Working hours tell the NexHealth API: "When you look for available slots, look a
 - **Synced working hours** are created in the PMS/EHR and synced INTO NexHealth by the synchronizer. These are read-only from the API perspective.
 - **Providers can have multiple working hours** across different operatories, including overlapping time windows. For example, a provider can be configured 9am-5pm in Operatory A and also 9am-5pm in Operatory B simultaneously — this is valid and expected.
 - **Slots are returned per operatory** — `get_available_slots` returns slots scoped to the operatory. While operatory is not strictly required in the request, it is highly recommended to specify it for accurate results.
+=======
+## Overview
+Working hours define when a provider is available for appointments. They must be linked to a specific provider and operatory at the session location. Choose exactly one scheduling mode.
+>>>>>>> 06210092463dd4feb7e4b25e9fefbd70ee666a6d
 
 ---
 
@@ -32,9 +37,12 @@ Present the list and ask the user which provider this availability is for.
 Call list_operatories() if the operatory_id is not already known.
 Operatory is REQUIRED — a working hour cannot be created without one.
 
+<<<<<<< HEAD
 Present the list to the user. Remember that a provider can have working hours
 in multiple operatories — ask which operatory this specific working hour is for.
 
+=======
+>>>>>>> 06210092463dd4feb7e4b25e9fefbd70ee666a6d
 ### 3. Get the Time Range
 Ask the user for:
 - begin_time — start time in HH:MM format (e.g. "09:00")
@@ -53,7 +61,11 @@ Valid values: Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
 
 **Option B — One-Off Date (specific_date)**
 Provider is available on a single specific date only.
+<<<<<<< HEAD
 Example: a cover shift on July 4th.
+=======
+Example: July 4th cover shift.
+>>>>>>> 06210092463dd4feb7e4b25e9fefbd70ee666a6d
 Pass as: specific_date="2026-07-04"
 
 **Option C — Custom Recurrence (custom_recurrence)**
@@ -70,7 +82,11 @@ Summarise the working hour and ask the user to confirm:
 
   Provider:  [provider name]
   Operatory: [operatory name]
+<<<<<<< HEAD
   Hours:     [begin_time] – [end_time] ([local timezone])
+=======
+  Hours:     [begin_time] – [end_time]
+>>>>>>> 06210092463dd4feb7e4b25e9fefbd70ee666a6d
   Schedule:  [mode description]
   Active:    Yes
 
@@ -78,6 +94,7 @@ Summarise the working hour and ask the user to confirm:
 Call create_working_hour() with all collected fields.
 
 On success, present the returned working hour ID and confirm it is active.
+<<<<<<< HEAD
 Remind the user that available slots within this window will be returned
 immediately by get_available_slots.
 
@@ -93,6 +110,8 @@ Slots should appear immediately. If no slots are returned:
 - Check that the date range overlaps with the working hour schedule
 - Check that the operatory_id matches the one on the working hour
 - Check that the provider is not already fully booked in that window
+=======
+>>>>>>> 06210092463dd4feb7e4b25e9fefbd70ee666a6d
 
 ---
 
@@ -100,8 +119,15 @@ Slots should appear immediately. If no slots are returned:
 
 | Error | Cause | Fix |
 |---|---|---|
+<<<<<<< HEAD
 | 422 — overlapping schedule | Another working hour already covers this time in the same operatory | Overlapping hours across different operatories are fine |
 | 422 — invalid days value | Day name not recognised | Must be full name e.g. "Monday" not "Mon" |
 | 422 — operatory not found | operatory_id not valid at this location | Call list_operatories() and pick a valid one |
 | Validation error — missing recurrence fields | custom_recurrence requires all three fields | Ensure num, unit, and ref are all provided |
 | No slots returned after creation | Working hour exists but window is fully booked | The window is open but all slots are taken — this is expected behavior |
+=======
+| 422 — overlapping schedule | Another working hour already covers this time | Check existing schedules before creating |
+| 422 — invalid days value | Day name not recognised | Check spelling — must be full name e.g. "Monday" not "Mon" |
+| 422 — operatory not found | operatory_id not valid at this location | Call list_operatories() and pick a valid one |
+| Validation error — missing recurrence fields | custom_recurrence requires all three fields | Ensure num, unit, and ref are all provided |
+>>>>>>> 06210092463dd4feb7e4b25e9fefbd70ee666a6d
