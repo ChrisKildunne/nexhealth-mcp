@@ -66,3 +66,16 @@ On success, present the new patient's ID and confirm they have been created at t
 | 422 — email already exists | A patient with this email exists at this location | Surface the existing patient to the user |
 | 422 — invalid date format | date_of_birth not in YYYY-MM-DD format | Reformat and retry |
 | 422 — provider not found | provider_id is not valid at this location | Call list_providers() and pick a valid one |
+
+---
+
+## Important: When Does a Patient Appear in the PMS?
+
+Creating a patient via the API creates them in NexHealth only. **The patient is NOT synced to the PMS/EHR (e.g. Open Dental) at this point.**
+
+A patient is only written to the PMS when their **first appointment is scheduled**. Until then they exist solely as a NexHealth record.
+
+This means:
+- Do NOT tell the developer the patient has synced to Open Dental after creation
+- Do NOT suggest the patient will appear in Open Dental until an appointment is booked
+- After successfully creating a patient, the correct next step to offer is booking their first appointment — which is what triggers the sync
