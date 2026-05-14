@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff
+      - run: ruff check .
+
+  content-check:
+    # Guards against path bugs that silently break get_started / get_workflow
+    # (the content_loader previously pointed to the wrong directory and returned
+    # empty dicts with no error — this job makes that class of bug visible in CI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install "mcp[cli]>=1.27.1,<2.0"
+      - name: Verify onboarding and workflow content loads
+        run: |
+          python -c "
+          from nexhealth.content_loader import ONBOARDING, WORKFLOWS, SANDBOX_GUIDE, PRODUCTION_GUIDE
+          assert len(ONBOARDING) > 0, 'ONBOARDING is empty — check content_loader directory paths'
+          assert len(WORKFLOWS) > 0, 'WORKFLOWS is empty — check content_loader directory paths'
+          assert '[Section' not in SANDBOX_GUIDE, 'Sandbox guide has missing sections'
+          assert '[Section' not in PRODUCTION_GUIDE, 'Production guide has missing sections'
+          print(f'OK: {len(ONBOARDING)} onboarding sections, {len(WORKFLOWS)} workflows loaded')
+          "
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install bandit
+      - run: bandit -r nexhealth/ server.py -ll
