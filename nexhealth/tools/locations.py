@@ -1,7 +1,7 @@
 import json
-import os
 
 import nexhealth.session as _session
+from nexhealth import config_loader as _cfg
 from nexhealth.app import mcp
 from nexhealth.http_client import _request
 from nexhealth.time_utils import _tz_for_state
@@ -64,12 +64,12 @@ def select_location(location_id: int) -> str:
     _session._location_id    = location_id
     _session._location_state = match.get("state", "").strip().upper() if match.get("state") else None
 
-    # NEXHEALTH_TIMEZONE_OVERRIDE lets operators correct for split-timezone states
-    # (e.g. Eastern Tennessee practices are Eastern time, not the state default of Central).
-    tz_override = os.environ.get("NEXHEALTH_TIMEZONE_OVERRIDE", "").strip()
+    # config_loader resolves NEXHEALTH_TIMEZONE_OVERRIDE env var then config.yaml,
+    # letting operators correct for split-timezone states without editing code.
+    tz_override = _cfg.TIMEZONE_OVERRIDE
     _session._location_tz = tz_override or (_tz_for_state(_session._location_state) if _session._location_state else None)
 
-    tz_source = "NEXHEALTH_TIMEZONE_OVERRIDE env var" if tz_override else "state lookup"
+    tz_source = "config override" if tz_override else "state lookup"
     return json.dumps({
         "message":     "Location locked for this session.",
         "location_id": _session._location_id,

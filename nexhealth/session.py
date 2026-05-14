@@ -6,11 +6,11 @@ then read (never written) by most tool modules. Writes go through the
 tool functions in institutions.py and locations.py which reference this
 module directly (import nexhealth.session as _session).
 """
-import os
 from typing import Optional
+from nexhealth import config_loader as _cfg
 
 _bearer_token:   Optional[str] = None
-_subdomain:      Optional[str] = None   # set by select_institution or NEXHEALTH_SUBDOMAIN env var
+_subdomain:      Optional[str] = None   # set by select_institution, config.yaml, or env var
 _location_id:    Optional[int] = None   # set by select_location; enforced on patient + booking calls
 _location_tz:    Optional[str] = None   # IANA timezone string, e.g. "America/Denver"
 _location_state: Optional[str] = None   # US state abbreviation, e.g. "CO"
@@ -21,9 +21,8 @@ def _ensure_subdomain() -> str:
     global _subdomain
     if _subdomain:
         return _subdomain
-    env_sub = os.environ.get("NEXHEALTH_SUBDOMAIN", "").strip()
-    if env_sub:
-        _subdomain = env_sub
+    if _cfg.SUBDOMAIN:
+        _subdomain = _cfg.SUBDOMAIN
         return _subdomain
     raise RuntimeError(
         "No institution selected for this session. "

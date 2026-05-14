@@ -113,14 +113,15 @@ def current_session() -> str:
     are active, and whether authentication is established.
     Useful for confirming setup before making other calls.
     """
-    env_sub = os.environ.get("NEXHEALTH_SUBDOMAIN", "").strip()
+    from nexhealth import config_loader as _cfg
+    cfg_sub = _cfg.SUBDOMAIN
     return json.dumps({
         "authenticated":      _session._bearer_token is not None,
         "active_subdomain":   (
-            _session._subdomain or env_sub or "(not set — call list_institutions first)"
+            _session._subdomain or cfg_sub or "(not set — call list_institutions first)"
         ),
         "subdomain_source":   (
-            "environment variable" if (not _session._subdomain and env_sub)
+            "config/env" if (not _session._subdomain and cfg_sub)
             else ("select_institution()" if _session._subdomain else "none")
         ),
         "active_location_id": (
