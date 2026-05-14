@@ -3,7 +3,35 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional
 
-from nexhealth.config import STATE_TIMEZONES
+from nexhealth.config import CITY_TIMEZONE_OVERRIDES, SPLIT_TIMEZONE_STATES, STATE_TIMEZONES
+
+
+def _tz_for_location(city: Optional[str], state: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+    """
+    Resolve the best available IANA timezone for a location, and return a
+    warning string if the state is split-timezone and the city wasn't recognised.
+
+    Returns (iana_tz, warning_or_None).
+    """
+    city_key = (city or "").strip().lower()
+    state_key = (state or "").strip().upper()
+
+    # 1. City-level override — most specific, handles split-timezone states
+    if city_key and city_key in CITY_TIMEZONE_OVERRIDES:
+        return CITY_TIMEZONE_OVERRIDES[city_key], None
+
+    # 2. State default
+    state_tz = STATE_TIMEZONES.get(state_key)
+
+    # 3. Warn when the state is split-timezone and the city wasn't in our map
+    warning = None
+    if state_key in SPLIT_TIMEZONE_STATES and city_key not in CITY_TIMEZONE_OVERRIDES:
+        warning = (
+            f"'{city or state}' is in a split-timezone state. "
+            f"{SPLIT_TIMEZONE_STATES[state_key]}"
+        )
+
+    return state_tz, warning
 
 
 def _tz_for_state(state: str) -> Optional[str]:

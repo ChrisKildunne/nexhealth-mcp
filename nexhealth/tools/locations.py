@@ -4,7 +4,7 @@ import nexhealth.session as _session
 from nexhealth import config_loader as _cfg
 from nexhealth.app import mcp
 from nexhealth.http_client import _request
-from nexhealth.time_utils import _tz_for_state
+from nexhealth.time_utils import _tz_for_location
 from nexhealth.tools._decorator import _tool
 
 
@@ -63,19 +63,29 @@ def select_location(location_id: int) -> str:
 
     _session._location_id    = location_id
     _session._location_state = match.get("state", "").strip().upper() if match.get("state") else None
+    city                     = match.get("city", "")
 
-    # config_loader resolves NEXHEALTH_TIMEZONE_OVERRIDE env var then config.yaml,
-    # letting operators correct for split-timezone states without editing code.
+    # Config override wins; otherwise resolve by city then state.
     tz_override = _cfg.TIMEZONE_OVERRIDE
-    _session._location_tz = tz_override or (_tz_for_state(_session._location_state) if _session._location_state else None)
+    if tz_override:
+        _session._location_tz = tz_override
+        tz_source = "config override"
+        tz_warning = None
+    else:
+        _session._location_tz, tz_warning = _tz_for_location(city, _session._location_state)
+        tz_source = "city lookup" if (city and _session._location_tz) else "state lookup"
 
-    tz_source = "config override" if tz_override else "state lookup"
-    return json.dumps({
-        "message":     "Location locked for this session.",
-        "location_id": _session._location_id,
-        "name":        match.get("name"),
-        "city":        match.get("city"),
-        "state":       _session._location_state,
-        "timezone":    _session._location_tz or "Unknown (set NEXHEALTH_TIMEZONE_OVERRIDE to fix)",
+    response = {
+        "message":        "Location locked for this session.",
+        "location_id":    _session._location_id,
+        "name":           match.get("name"),
+        "city":           city,
+        "state":          _session._location_state,
+        "timezone":       _session._location_tz or "Unknown — set timezone_override in config.yaml",
         "timezone_source": tz_source,
-    }, indent=2)
+    }
+    if tz_warning:
+        response["timezone_warning"] = (
+            tz_warning + " If this is wrong, set timezone_override in config.yaml."
+        )
+    return json.dumps(response, indent=2)
