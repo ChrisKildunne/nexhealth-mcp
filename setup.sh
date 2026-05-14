@@ -25,7 +25,7 @@ download() {
     fi
 }
 
-# Re-attach stdin to the terminal so read prompts work when piped through curl
+# Re-attach stdin so read prompts work when piped through curl
 exec < /dev/tty
 
 echo ""
@@ -40,11 +40,11 @@ echo "  • Make the start script executable"
 echo ""
 read -p "Press Enter to continue or Ctrl+C to cancel..."
 
-# Step 1: Check dependencies
+# ── Step 1: Check dependencies ─────────────────────────────────────────────────
 print_step "Checking dependencies"
 
 if ! command -v python3 &>/dev/null; then
-    print_error "Python 3 is not installed. Install from https://python.org and re-run."
+    print_error "Python 3 not installed. Install from https://python.org and re-run."
     exit 1
 fi
 
@@ -56,13 +56,49 @@ if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" 
     print_error "Python 3.10+ required. You have Python $PYTHON_VERSION."
     exit 1
 fi
-print_ok "Python $PYTHON_VERSION"
 
 PYTHON_BIN=$(which python3)
 PIP_BIN=$(which pip3)
-print_ok "Python path: $PYTHON_BIN"
+print_ok "Python $PYTHON_VERSION ($PYTHON_BIN)"
 
-# Step 2: Install MCP
+# ── Step 2: Fix SSL certificates ───────────────────────────────────────────────
+# Python installed from python.org on Mac does not automatically trust the
+# system SSL certificates. This causes SSL: CERTIFICATE_VERIFY_FAILED errors
+# when the server tries to make API calls. We fix this automatically.
+print_step "Checking SSL certificates"
+
+SSL_OK=$($PYTHON_BIN -c "import urllib.request; urllib.request.urlopen('https://nexhealth.info')" 2>&1 || true)
+
+if echo "$SSL_OK" | grep -q "CERTIFICATE_VERIFY_FAILED"; then
+    print_warn "SSL certificate issue detected — fixing automatically..."
+
+    # First try the Install Certificates command that ships with python.org installers
+    CERT_CMD="/Applications/Python ${PYTHON_VERSION}/Install Certificates.command"
+    if [ -f "$CERT_CMD" ]; then
+        bash "$CERT_CMD" &>/dev/null
+        print_ok "SSL certificates installed via Install Certificates.command"
+    else
+        # Fall back to certifi
+        $PIP_BIN install --upgrade certifi --quiet
+        CERT_FILE=$($PYTHON_BIN -c "import certifi; print(certifi.where())" 2>/dev/null)
+        if [ -n "$CERT_FILE" ]; then
+            # Write SSL cert path into the start script env so it takes effect at runtime
+            export SSL_CERT_FILE="$CERT_FILE"
+            export REQUESTS_CA_BUNDLE="$CERT_FILE"
+            print_ok "SSL certificates fixed via certifi ($CERT_FILE)"
+        else
+            print_warn "Could not automatically fix SSL certificates."
+            print_warn "If you see SSL errors, run: pip3 install certifi"
+        fi
+    fi
+else
+    print_ok "SSL certificates OK"
+fi
+
+# Capture cert file path for use in start script (may be empty if not needed)
+CERT_FILE=$($PYTHON_BIN -c "import certifi; print(certifi.where())" 2>/dev/null || echo "")
+
+# ── Step 3: Install MCP ────────────────────────────────────────────────────────
 print_step "Installing MCP Python package"
 if $PYTHON_BIN -c "import mcp" &>/dev/null; then
     print_ok "mcp already installed"
@@ -71,32 +107,33 @@ else
     $PIP_BIN install "mcp[cli]" --quiet && print_ok "mcp[cli] installed" || { print_error "Failed to install mcp[cli]"; exit 1; }
 fi
 
-# Step 3: Create folders
+# ── Step 4: Create folders ─────────────────────────────────────────────────────
 print_step "Creating folder structure"
 mkdir -p "$INSTALL_DIR" "$INSTALL_DIR/onboarding" "$INSTALL_DIR/workflows"
 print_ok "$INSTALL_DIR/"
 print_ok "$INSTALL_DIR/onboarding/"
 print_ok "$INSTALL_DIR/workflows/"
 
-# Step 4: Root files
+# ── Step 5: Download root files ────────────────────────────────────────────────
 print_step "Downloading server files"
 download "$GITHUB_RAW/nexhealth_mcp_server.py"    "$INSTALL_DIR/nexhealth_mcp_server.py"
 download "$GITHUB_RAW/nexhealth_system_prompt.txt" "$INSTALL_DIR/nexhealth_system_prompt.txt"
 download "$GITHUB_RAW/nexhealth_mcp_README.md"     "$INSTALL_DIR/nexhealth_mcp_README.md"
 
-# Step 5: Workflow files
+# ── Step 6: Download workflow files ───────────────────────────────────────────
 print_step "Downloading workflow files"
 for file in book_appointment.md create_patient.md create_working_hour.md patch_appointment.md session_setup.md troubleshoot.md; do
     download "$GITHUB_RAW/workflows/$file" "$INSTALL_DIR/workflows/$file"
 done
 
-# Step 6: Onboarding files
+# ── Step 7: Download onboarding files ─────────────────────────────────────────
 print_step "Downloading onboarding files"
 for file in sandbox_overview.md dev_portal.md vm_setup.md open_dental.md synchronizer.md api_key.md sandbox_first_call.md production_overview.md production_institution.md production_datasource.md production_api_key.md production_first_call.md; do
     download "$GITHUB_RAW/onboarding/$file" "$INSTALL_DIR/onboarding/$file"
 done
 
-# Step 7: Start script
+# ── Step 8: Create start script ────────────────────────────────────────────────
+# Includes SSL cert path if certifi was needed — silently ignored if not needed
 print_step "Creating start script"
 cat > "$INSTALL_DIR/nexhealth-mcp-start.sh" << STARTSCRIPT
 #!/bin/bash
@@ -109,62 +146,44 @@ if [ -z "\$NEXHEALTH_API_KEY" ]; then
 fi
 
 export NEXHEALTH_SYSTEM_PROMPT=\$(cat "\$HOME/Nexhealth/nexhealth_system_prompt.txt" 2>/dev/null)
+$([ -n "$CERT_FILE" ] && echo "export SSL_CERT_FILE=\"$CERT_FILE\"" || echo "# SSL certificates OK — no override needed")
+$([ -n "$CERT_FILE" ] && echo "export REQUESTS_CA_BUNDLE=\"$CERT_FILE\"" || echo "")
 exec ${PYTHON_BIN} "\$HOME/Nexhealth/nexhealth_mcp_server.py"
 STARTSCRIPT
 
 chmod +x "$INSTALL_DIR/nexhealth-mcp-start.sh"
-print_ok "nexhealth-mcp-start.sh created (using $PYTHON_BIN)"
+print_ok "nexhealth-mcp-start.sh created"
 
-# Step 8: API key — works correctly when piped through curl
+# ── Step 9: API key ────────────────────────────────────────────────────────────
 print_step "API Key Setup"
 echo ""
-echo "  You need a NexHealth API key."
-echo "  If you don't have one yet, sign up at: https://developers.nexhealth.com/signup"
-echo ""
-
-# Check if key already exists in keychain
 EXISTING_KEY=$(security find-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w 2>/dev/null || echo "")
 if [ -n "$EXISTING_KEY" ]; then
     print_ok "API key already found in keychain — keeping it."
 else
+    echo "  You need a NexHealth API key."
+    echo "  Sign up at: https://developers.nexhealth.com/signup"
+    echo ""
     read -p "  Paste your API key and press Enter: " API_KEY
     echo ""
     if [ -z "$API_KEY" ]; then
-        print_warn "No key entered. Add it later with:"
+        print_warn "No key entered. Add later with:"
         echo '         security add-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w "your_key_here"'
     else
         security delete-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" &>/dev/null || true
         security add-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w "$API_KEY"
-        print_ok "API key stored securely in macOS keychain"
+        print_ok "API key stored in macOS keychain"
     fi
 fi
 
-# Step 9: Claude Desktop config
+# ── Step 10: Claude Desktop config ────────────────────────────────────────────
 print_step "Configuring Claude Desktop"
 mkdir -p "$CLAUDE_CONFIG_DIR"
 
-if [ -f "$CLAUDE_CONFIG_FILE" ]; then
-    if grep -q "nexhealth" "$CLAUDE_CONFIG_FILE" 2>/dev/null; then
-        print_ok "NexHealth already in claude_desktop_config.json — no changes needed."
-    else
-        # Config exists but no nexhealth entry — add it alongside existing servers
-        cp "$CLAUDE_CONFIG_FILE" "$CLAUDE_CONFIG_FILE.backup"
-        print_ok "Backed up existing config to claude_desktop_config.json.backup"
-        # Extract existing mcpServers content and merge
-        cat > "$CLAUDE_CONFIG_FILE" << CLAUDECONFIG
-{
-  "mcpServers": {
-    "nexhealth": {
-      "command": "${INSTALL_DIR}/nexhealth-mcp-start.sh",
-      "args": []
-    }
-  }
-}
-CLAUDECONFIG
-        print_ok "claude_desktop_config.json updated with NexHealth entry"
-    fi
+if [ -f "$CLAUDE_CONFIG_FILE" ] && grep -q "nexhealth" "$CLAUDE_CONFIG_FILE" 2>/dev/null; then
+    print_ok "NexHealth already in claude_desktop_config.json — no changes needed."
 else
-    # No config file at all — create it fresh
+    [ -f "$CLAUDE_CONFIG_FILE" ] && cp "$CLAUDE_CONFIG_FILE" "$CLAUDE_CONFIG_FILE.backup" && print_ok "Backed up existing config"
     cat > "$CLAUDE_CONFIG_FILE" << CLAUDECONFIG
 {
   "mcpServers": {
@@ -178,7 +197,7 @@ CLAUDECONFIG
     print_ok "claude_desktop_config.json created"
 fi
 
-# Step 10: Verify
+# ── Step 11: Verify ────────────────────────────────────────────────────────────
 print_step "Verifying installation"
 ALL_GOOD=true
 for f in \
