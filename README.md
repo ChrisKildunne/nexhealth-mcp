@@ -1,41 +1,20 @@
 # NexHealth MCP Server
 
-Exposes the NexHealth API as MCP tools so Claude can book appointments, search patients, check availability, and more — conversationally.
+Exposes the NexHealth API as MCP tools so Claude (or any MCP-compatible agent) can book appointments, manage patients, check availability, and guide developers through setup — conversationally, without writing any API code.
 
 ---
 
-## Prerequisites
+## Quickstart (recommended — no manual venv needed)
 
 ```bash
-pip install "mcp[cli]"
-```
+# 1. Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-Python 3.10+ recommended.
+# 2. Store your API key in the macOS Keychain
+security add-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w "your_api_key_here"
 
----
-
-## Environment Variables
-
-Set these before running the server:
-
-| Variable | Description |
-|---|---|
-| `NEXHEALTH_API_KEY` | Your NexHealth API key (from the NexHealth dashboard) |
-| `NEXHEALTH_SUBDOMAIN` | Your institution subdomain (e.g. `nexhealthsmiles`) |
-
-```bash
-export NEXHEALTH_API_KEY="your_api_key_here"
-export NEXHEALTH_SUBDOMAIN="yoursubdomain"
-```
-
----
-
-## Running the Server
-
-### Option A — stdio (Claude Desktop / local MCP clients)
-
-```bash
-python nexhealth_mcp_server.py
+# 3. Point Claude Desktop at the start script (see below)
+# 4. Restart Claude Desktop — done
 ```
 
 **Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
@@ -44,60 +23,92 @@ python nexhealth_mcp_server.py
 {
   "mcpServers": {
     "nexhealth": {
-      "command": "python",
-      "args": ["/absolute/path/to/nexhealth_mcp_server.py"],
-      "env": {
-        "NEXHEALTH_API_KEY": "your_api_key_here",
-        "NEXHEALTH_SUBDOMAIN": "yoursubdomain"
-      }
+      "command": "/Users/YOUR_USERNAME/Nexhealth/nexhealth-mcp-start.sh",
+      "args": []
     }
   }
 }
 ```
 
-### Option B — SSE/HTTP (hosted, Claude.ai MCP connector)
+Full setup walkthrough: **[docs/setup.md](docs/setup.md)**
+
+---
+
+## Alternative install (uv tool)
 
 ```bash
-python nexhealth_mcp_server.py --sse --port 8080
-```
+# Install from this repo as a local uv tool
+uv tool install .
 
-Then register `http://yourserver:8080/sse` as the MCP server URL in Claude.ai settings.
+# Run directly
+nexhealth-mcp
+
+# Or without installing
+uv run nexhealth-mcp
+```
 
 ---
 
-## Available Tools
+## Manual install (pip)
 
-| Tool | What it does |
+```bash
+pip install -r requirements.txt
+python server.py
+```
+
+---
+
+## Tools (20 total)
+
+**Onboarding guidance** — `get_started`, `get_workflow`
+
+**Session setup** — `list_institutions`, `select_institution`, `current_session`
+
+**Locations** — `list_locations`, `select_location`
+
+**Patients** — `search_patients`, `get_patient`, `create_patient`
+
+**Providers** — `list_providers`, `list_appointment_types`
+
+**Availability** — `get_available_slots`
+
+**Appointments** — `book_appointment`, `get_appointment`, `list_appointments`, `cancel_appointment`, `patch_appointment`
+
+**Operatories** — `list_operatories`
+
+**Working hours** — `create_working_hour`
+
+---
+
+## Booking flow (what Claude does automatically)
+
+```
+list_institutions  → select_institution
+list_locations     → select_location
+search_patients    → find patient_id
+list_providers     → find provider_id
+get_available_slots → pick a slot (time + operatory_id)
+book_appointment   → POST the appointment
+get_appointment    → verify PMS sync status
+```
+
+---
+
+## Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXHEALTH_API_KEY` | Yes | Your NexHealth API key |
+| `NEXHEALTH_SUBDOMAIN` | No | Skip institution selection; use this subdomain directly |
+| `NEXHEALTH_TIMEZONE_OVERRIDE` | No | Override state-derived timezone (e.g. `America/New_York` for Eastern TN) |
+
+---
+
+## Documentation
+
+| Doc | What's in it |
 |---|---|
-| `list_locations` | List all practice locations for your institution |
-| `search_patients` | Search patients by name within a location |
-| `get_patient` | Fetch a single patient by ID |
-| `list_providers` | List all active providers at a location |
-| `list_appointment_types` | List appointment types (cleaning, exam, etc.) |
-| `get_available_slots` | Find open appointment slots for a provider |
-| `book_appointment` | Create (POST) a new appointment |
-| `get_appointment` | Fetch a single appointment by ID |
-| `list_appointments` | List appointments in a date range |
-| `cancel_appointment` | Cancel an existing appointment |
-| `list_operatories` | List rooms/chairs at a location |
-
----
-
-## Typical Booking Flow (what Claude does automatically)
-
-```
-1. list_locations          → pick a location_id
-2. search_patients         → find patient_id
-3. list_providers          → pick provider_id
-4. list_appointment_types  → pick appointment_type_id (optional)
-5. get_available_slots     → pick a slot (gives time + operatory_id)
-6. book_appointment        → POST the appointment
-```
-
----
-
-## Authentication Notes
-
-- The server calls `POST /authenticates` once on startup using your API key, caches the bearer token for the session, and automatically attaches it to every subsequent request.
-- If the token expires (NexHealth tokens are short-lived), restart the server to re-authenticate.
-- The `subdomain` query parameter is injected automatically into every request — you never need to pass it to the tools.
+| [docs/setup.md](docs/setup.md) | Installation, Keychain setup, Claude Desktop config, SSE mode |
+| [docs/usage.md](docs/usage.md) | Session model, all 20 tools, key behaviors |
+| [docs/architecture.md](docs/architecture.md) | Package layout, how to add a new tool |
+| [changes.md](changes.md) | Change history |
