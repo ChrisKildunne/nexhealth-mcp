@@ -10,8 +10,8 @@ Exposes the NexHealth API as MCP tools so Claude (or any MCP-compatible agent) c
 # 1. Install uv if you don't have it
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 2. Store your API key in the macOS Keychain
-security add-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w "your_api_key_here"
+# 2. Run the setup wizard — stores your API key and generates config.yaml
+uv run nexhealth-mcp init
 
 # 3. Point Claude Desktop at the start script (see below)
 # 4. Restart Claude Desktop — done

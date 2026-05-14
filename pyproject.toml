@@ -18,6 +18,11 @@ dependencies = [
 [project.scripts]
 nexhealth-mcp = "nexhealth.__main__:main"
 
+# Commands:
+#   nexhealth-mcp        start the server
+#   nexhealth-mcp init   first-time setup wizard
+#   nexhealth-mcp setup  update API key only
+
 [tool.hatch.build.targets.wheel]
 packages = ["nexhealth"]
 
