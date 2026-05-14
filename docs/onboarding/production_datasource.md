@@ -17,6 +17,11 @@ connects NexHealth to your practice's Open Dental database.
 
 ### Install the Synchronizer on the Practice Server
 
+NOTE: This step must be performed on-site (or remotely) at the dental practice.
+You will need access to their Windows server and an IT contact or admin at the
+practice. If you need help coordinating this, contact NexHealth support at
+support@nexhealth.com — they can assist with guided Synchronizer installs.
+
 The Synchronizer must be installed on the Windows machine where the practice's
 Open Dental database is running. This is typically a server at the practice
 location itself.

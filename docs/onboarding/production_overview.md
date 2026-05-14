@@ -1,7 +1,9 @@
 ## NexHealth Production Setup — Overview
 
-IMPORTANT: Production setup must be completed before making any production API
-calls. These steps configure a real institution connected to a live EHR.
+IMPORTANT: Production setup requires coordination with NexHealth. Before
+starting, contact NexHealth support (support@nexhealth.com) to confirm your
+account is provisioned for production API access. They will verify your
+institution and enable production mode in your developer portal.
 
 Steps:
   1. production_institution  — Create a production institution in the developer portal
