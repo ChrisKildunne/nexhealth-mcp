@@ -1006,6 +1006,16 @@ def book_appointment(
 def get_appointment(appointment_id: int) -> str:
     """
     Retrieve a single appointment by its NexHealth appointment ID.
+    Also interprets and surfaces two important status fields:
+
+    1. PMS sync status — derived from foreign_id_type:
+       - If foreign_id_type starts with "Nex", the appointment has NOT yet
+         synced to the PMS/EHR. Surface this clearly to the developer.
+       - If foreign_id_type contains a PMS name (e.g. "dentrix", "eaglesoft"),
+         the appointment has synced. Tell the developer which PMS it synced to.
+
+    2. Unavailable block — if unavailable=true and patient_id is missing,
+       this is a blocked time slot, not a real appointment. Label it clearly.
 
     Args:
         appointment_id: The NexHealth appointment ID to look up.
@@ -1015,7 +1025,24 @@ def get_appointment(appointment_id: int) -> str:
         f"/appointments/{appointment_id}",
         params={"include[]": ["patient", "operatory", "appointment_type"]},
     )
-    return json.dumps(data.get("data", data), indent=2)
+    appt = data.get("data", data)
+
+    # Interpret PMS sync status
+    foreign_id_type = appt.get("foreign_id_type", "") or ""
+    if foreign_id_type.startswith("Nex"):
+        appt["_pms_sync_status"] = "Not yet synced to PMS — foreign_id_type starts with Nex"
+    elif foreign_id_type:
+        appt["_pms_sync_status"] = f"Synced to PMS: {foreign_id_type}"
+    else:
+        appt["_pms_sync_status"] = "Unknown — no foreign_id_type present"
+
+    # Flag unavailable blocks
+    if appt.get("unavailable") is True and not appt.get("patient_id"):
+        appt["_record_type"] = "UNAVAILABLE BLOCK — this is a blocked time slot, not a patient appointment"
+    else:
+        appt["_record_type"] = "appointment"
+
+    return json.dumps(appt, indent=2)
 
 
 @mcp.tool()
@@ -1054,6 +1081,13 @@ def list_appointments(
       - Whether there are more pages (has_next_page / has_previous_page)
       - A prompt like "Want me to fetch the next page?" when has_next_page is true.
     Do NOT call this tool again until the user explicitly asks to paginate.
+
+    IMPORTANT — reading results:
+      - Records with unavailable=true and no patient_id are UNAVAILABLE BLOCKS
+        (blocked time slots). Label these clearly as "[Unavailable Block]" when
+        presenting to the user — do not treat them as patient appointments.
+      - To check PMS sync status for a specific appointment, call
+        get_appointment(appointment_id=...) which interprets the foreign_id_type field.
     """
     location_id = _ensure_location()
 

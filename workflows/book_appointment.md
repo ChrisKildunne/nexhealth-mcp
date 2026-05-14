@@ -69,3 +69,26 @@ After booking, present the returned appointment ID and tell the user the appoint
 | 422 — patient not found | Patient ID does not exist at this location | Re-run search_patients and confirm the patient |
 | 401 | Token expired | Server will auto-refresh — retry the call |
 | No slots returned | Provider has no availability in the search window | Extend the days parameter or try a different start_date |
+
+---
+
+## After Booking — PMS Sync Status
+
+After successfully creating an appointment, call get_appointment(appointment_id=...)
+to check whether it has synced to the PMS/EHR.
+
+The response includes a _pms_sync_status field:
+- "Not yet synced to PMS" — foreign_id_type starts with "Nex". This means the
+  appointment exists in NexHealth but has not yet been written to the PMS/EHR.
+  The synchronizer will write it on its next sync cycle.
+- "Synced to PMS: [name]" — the appointment has been written to the PMS/EHR.
+  The PMS name (e.g. dentrix, eaglesoft) will appear in the status.
+
+DO NOT tell the developer the appointment has synced until get_appointment()
+confirms the foreign_id_type no longer starts with "Nex".
+
+## Unavailable Blocks
+
+When listing appointments, records with unavailable=true and no patient_id are
+UNAVAILABLE BLOCKS — blocked time slots, not patient appointments. Always label
+these clearly as [Unavailable Block] when presenting results to the user.
