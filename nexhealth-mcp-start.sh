@@ -8,4 +8,6 @@ if [ -z "$NEXHEALTH_API_KEY" ]; then
 fi
 
 export NEXHEALTH_SYSTEM_PROMPT=$(cat "$HOME/Nexhealth/nexhealth_system_prompt.txt" 2>/dev/null)
-exec /usr/local/bin/python3 "$HOME/Nexhealth/nexhealth_mcp_server.py"
+export SSL_CERT_FILE="/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/certifi/cacert.pem"
+export REQUESTS_CA_BUNDLE="/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/certifi/cacert.pem"
+exec /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 "$HOME/Nexhealth/server.py"
