@@ -34,7 +34,7 @@ def _ensure_subdomain() -> str:
 
 def _ensure_location() -> int:
     """Return the active location_id or raise, telling Claude to call select_location first."""
-    if _location_id:
+    if _location_id is not None:
         return _location_id
     raise RuntimeError(
         "No location selected for this session. "

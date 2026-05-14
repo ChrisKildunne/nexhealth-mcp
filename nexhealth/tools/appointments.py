@@ -61,7 +61,7 @@ def book_appointment(
         "start_time":  start_time,
         "location_id": session_location,
     }
-    if operatory_id:
+    if operatory_id is not None:
         appt_body["operatory_id"] = operatory_id
     if appointment_type_id:
         appt_body["appointment_type_id"] = appointment_type_id

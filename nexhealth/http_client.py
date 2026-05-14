@@ -84,7 +84,7 @@ def _raw_request(
         hdrs = dict(headers)
         hdrs["Authorization"] = f"Bearer {tok}"
         r = urllib.request.Request(url, data=data, headers=hdrs, method=method)
-        with urllib.request.urlopen(r) as response:
+        with urllib.request.urlopen(r, timeout=30) as response:
             raw = response.read().decode("utf-8")
             return json.loads(raw) if raw else {}
 

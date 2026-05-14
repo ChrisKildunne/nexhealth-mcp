@@ -24,7 +24,7 @@ def _fetch_token() -> str:
     }
     req = urllib.request.Request(url, data=None, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         raise RuntimeError(

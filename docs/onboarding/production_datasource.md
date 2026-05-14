@@ -1,12 +1,45 @@
 ## Production Step 2 — Create an Open Dental Datasource
 
-After creating your institution you will be prompted to select a health record
-system.
+After creating your production institution you need to create a sync that
+connects NexHealth to your practice's Open Dental database.
 
-1. Select "Open Dental" from the list of available systems.
+### Create the Sync
 
-2. Click "Save and continue".
+1. In the developer portal (production mode), navigate to the Institutions page.
 
-[PLACEHOLDER — additional datasource configuration steps to be added here]
+2. Click "Create new sync" in the top right corner.
 
-Once your datasource is configured, continue to the production_api_key section.
+3. Select "Open Dental" as the system you are syncing with.
+
+4. The portal will display your unique product key and a download link for
+   the NexHealth Synchronizer installer. Copy the product key — you will
+   need it in the next step.
+
+### Install the Synchronizer on the Practice Server
+
+The Synchronizer must be installed on the Windows machine where the practice's
+Open Dental database is running. This is typically a server at the practice
+location itself.
+
+1. Download the installer from: https://nexhealth.com/download
+
+2. Run the installer on the practice's Windows server.
+   The machine must have Windows administrative privileges.
+
+3. Enter your product key when prompted and let the installer complete.
+
+4. If the installer fails to open, first install the Visual C++ runtime:
+     https://aka.ms/vs/17/release/vc_redist.x64.exe
+   Then re-run the Synchronizer installer.
+
+5. After installation, the Synchronizer will prompt you to select which
+   locations to monitor. Select the location(s) that will be connected
+   to your application.
+
+### Verify the Sync
+
+Back in the developer portal, the institution's sync status should update to
+reflect that the Synchronizer is connected. Allow a few minutes for the initial
+data sync — providers, locations, operatories, and patients will populate.
+
+Once your sync is active, continue to the production_api_key section.

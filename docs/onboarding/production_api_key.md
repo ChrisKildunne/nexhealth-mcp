@@ -1,6 +1,19 @@
 ## Production Step 3 — Generate and Store Your Production API Key
 
-[PLACEHOLDER — steps for generating a production API key to be added here]
+### Generate a Production API Key
+
+1. Log in to your NexHealth developer portal.
+
+2. Make sure you are in production mode — the purple "Test mode" banner
+   should NOT be visible. If it is, flip the toggle at the top right to
+   disable test mode.
+
+3. In the left panel, click "API Key".
+
+4. Click "Create API key" (or "Create production API key").
+
+5. A modal will appear showing your generated key — copy it immediately.
+   This is the only time the full key is shown.
 
 Once you have your production API key, store it securely in your Mac keychain:
 
