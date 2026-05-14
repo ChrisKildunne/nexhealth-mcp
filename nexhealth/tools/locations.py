@@ -1,4 +1,5 @@
 import json
+import os
 
 import nexhealth.session as _session
 from nexhealth.app import mcp
@@ -62,13 +63,19 @@ def select_location(location_id: int) -> str:
 
     _session._location_id    = location_id
     _session._location_state = match.get("state", "").strip().upper() if match.get("state") else None
-    _session._location_tz    = _tz_for_state(_session._location_state) if _session._location_state else None
 
+    # NEXHEALTH_TIMEZONE_OVERRIDE lets operators correct for split-timezone states
+    # (e.g. Eastern Tennessee practices are Eastern time, not the state default of Central).
+    tz_override = os.environ.get("NEXHEALTH_TIMEZONE_OVERRIDE", "").strip()
+    _session._location_tz = tz_override or (_tz_for_state(_session._location_state) if _session._location_state else None)
+
+    tz_source = "NEXHEALTH_TIMEZONE_OVERRIDE env var" if tz_override else "state lookup"
     return json.dumps({
         "message":     "Location locked for this session.",
         "location_id": _session._location_id,
         "name":        match.get("name"),
         "city":        match.get("city"),
         "state":       _session._location_state,
-        "timezone":    _session._location_tz or "Unknown (timezone could not be determined from state)",
+        "timezone":    _session._location_tz or "Unknown (set NEXHEALTH_TIMEZONE_OVERRIDE to fix)",
+        "timezone_source": tz_source,
     }, indent=2)

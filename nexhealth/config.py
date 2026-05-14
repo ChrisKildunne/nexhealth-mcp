@@ -3,8 +3,11 @@ API_VERSION = "v20240412"
 USER_AGENT  = "NexHealth-MCP-Server/1.0 Mozilla/5.0 (compatible; MCP; Python)"
 
 # Maps US state abbreviations to their primary IANA timezone identifier.
-# Covers the standard timezone for each state; edge cases (e.g. parts of Indiana,
-# Navajo Nation) are not differentiated.
+# Covers the majority timezone for each state. Known split-timezone cases:
+#   TN — Eastern counties (Knoxville, Chattanooga) are America/New_York, not Chicago.
+#   ID — Northern panhandle is America/Los_Angeles, not Boise.
+#   IN — Most counties are Indianapolis; some border counties differ.
+# Use the NEXHEALTH_TIMEZONE_OVERRIDE env var to correct for a specific location.
 STATE_TIMEZONES = {
     "AL": "America/Chicago",
     "AK": "America/Anchorage",
