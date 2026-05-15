@@ -1,6 +1,11 @@
 ## Production Step 4 — Make Your First Production API Call
 
-[PLACEHOLDER — production first call verification steps to be added here]
+Before running through the tools below, confirm:
+  - Your production API key is stored in the keychain (see production_api_key)
+  - The NexHealth Synchronizer has finished its initial sync (check the portal
+    — the sync status should be green and provider/patient counts should be
+    non-zero)
+  - Your start script is using the correct keychain entry for the production key
 
 The flow mirrors the sandbox flow but uses your production institution,
 production location, real providers, and real operatories:

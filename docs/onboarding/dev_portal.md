@@ -31,7 +31,7 @@ Make sure your start script at ~/Nexhealth/nexhealth-mcp-start.sh contains:
 
   #!/bin/bash
   export NEXHEALTH_API_KEY=$(security find-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w)
-  exec /usr/bin/python3 /Users/YOUR_USERNAME/Nexhealth/nexhealth_mcp_server.py
+  exec /usr/bin/python3 /Users/YOUR_USERNAME/Nexhealth/server.py
 
 And that your Claude Desktop config points to it:
 

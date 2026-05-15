@@ -1,0 +1,48 @@
+# NexHealth MCP Server — configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# Copy this file to config.yaml and fill in your values.
+# config.yaml is gitignored and never committed to version control.
+#
+# Environment variables always override values here — useful for CI,
+# Docker, or secrets providers (HashiCorp Vault, AWS Secrets Manager, etc.):
+#
+#   NEXHEALTH_SUBDOMAIN          overrides nexhealth.subdomain
+#   NEXHEALTH_TIMEZONE_OVERRIDE  overrides server.timezone_override
+#   NEXHEALTH_SSE_HOST           overrides server.sse_host
+#   NEXHEALTH_SSE_PORT           overrides server.sse_port
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# API KEY — never put your key in this file.
+#
+# The server reads your API key from the system keychain automatically:
+#   macOS   → Keychain (run: python -m nexhealth setup)
+#   Windows → Credential Manager (run: python -m nexhealth setup)
+#   Linux   → Secret Service / GNOME Keyring (run: python -m nexhealth setup)
+#
+# For network secrets providers (HashiCorp Vault, AWS Secrets Manager, etc.),
+# inject the key as an environment variable before starting the server:
+#   export NEXHEALTH_API_KEY=$(vault kv get -field=key secret/nexhealth)
+#   python -m nexhealth
+# ─────────────────────────────────────────────────────────────────────────────
+
+nexhealth:
+  # Pre-set your institution subdomain to skip the list_institutions step.
+  # Leave blank to select interactively at the start of each session.
+  subdomain: ""
+
+server:
+  # Timezone override for split-timezone states.
+  # The server derives timezone from the location's state by default, but some
+  # states are split (Tennessee, Idaho). Set this to the correct IANA timezone
+  # for your specific location.
+  # Example: "America/New_York"  (for Knoxville / Chattanooga, TN)
+  # Example: "America/Chicago"   (for Nashville / Memphis, TN — the default)
+  timezone_override: ""
+
+  # SSE mode host (only used when starting with --sse).
+  # 127.0.0.1 → local connections only (recommended for single-machine use)
+  # 0.0.0.0   → all interfaces (only use behind a reverse proxy with auth)
+  sse_host: "127.0.0.1"
+
+  # SSE mode port (only used when starting with --sse).
+  sse_port: 8080

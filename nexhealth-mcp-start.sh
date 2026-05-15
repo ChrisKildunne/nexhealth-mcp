@@ -1,11 +1,17 @@
 #!/bin/bash
-export NEXHEALTH_API_KEY=$(security find-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w 2>/dev/null)
+# NexHealth MCP Server — macOS/Linux start script for Claude Desktop.
+#
+# The API key is read automatically from the system keychain at runtime.
+# To store your key: python -m nexhealth setup
+#
+# Optional env var overrides (uncomment and fill in to use):
+# export NEXHEALTH_API_KEY="your_key"          # skips keychain lookup
+# export NEXHEALTH_SUBDOMAIN="your-subdomain"  # skips institution selection
 
-if [ -z "$NEXHEALTH_API_KEY" ]; then
-    echo "ERROR: NEXHEALTH_API_KEY not found in keychain."
-    echo "Run: security add-generic-password -a \"\$USER\" -s \"NEXHEALTH_API_KEY\" -w \"your_api_key_here\""
+PYTHON=$(command -v python3)
+if [ -z "$PYTHON" ]; then
+    echo "ERROR: python3 not found. Install Python 3.11+ and try again."
     exit 1
 fi
 
-export NEXHEALTH_SYSTEM_PROMPT=$(cat "$HOME/Nexhealth/nexhealth_system_prompt.txt" 2>/dev/null)
-exec /usr/local/bin/python3 "$HOME/Nexhealth/nexhealth_mcp_server.py"
+exec "$PYTHON" "$HOME/Nexhealth/server.py"

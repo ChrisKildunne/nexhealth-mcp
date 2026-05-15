@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff
+      - run: ruff check .
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      - run: pytest tests/unit/ -v
+
+  content-check:
+    # Redundant with test_content_loader.py but kept as a fast fail-early gate
+    # that runs before the full unit suite. Catches the "docs/ path" class of bug.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Verify onboarding and workflow content loads
+        run: |
+          python -c "
+          from nexhealth.content_loader import ONBOARDING, WORKFLOWS, SANDBOX_GUIDE, PRODUCTION_GUIDE
+          assert len(ONBOARDING) > 0, 'ONBOARDING is empty — check content_loader directory paths'
+          assert len(WORKFLOWS) > 0, 'WORKFLOWS is empty — check content_loader directory paths'
+          assert '[Section' not in SANDBOX_GUIDE, 'Sandbox guide has missing sections'
+          assert '[Section' not in PRODUCTION_GUIDE, 'Production guide has missing sections'
+          print(f'OK: {len(ONBOARDING)} onboarding sections, {len(WORKFLOWS)} workflows loaded')
+          "
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    # Only runs when the secret is available (not on fork PRs)
+    env:
+      NEXHEALTH_API_KEY: ${{ secrets.NEXHEALTH_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      - name: Run integration tests
+        if: env.NEXHEALTH_API_KEY != ''
+        run: pytest tests/integration/ -v
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install bandit
+      - run: bandit -r nexhealth/ server.py -ll

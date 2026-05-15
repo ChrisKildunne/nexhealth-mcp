@@ -21,7 +21,7 @@ Your start script retrieves the key from the keychain at runtime:
 
   #!/bin/bash
   export NEXHEALTH_API_KEY=$(security find-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w)
-  exec /usr/bin/python3 /Users/YOUR_USERNAME/Nexhealth/nexhealth_mcp_server.py
+  exec /usr/bin/python3 /Users/YOUR_USERNAME/Nexhealth/server.py
 
 The key is never written to any file — it is only loaded into memory for the
 duration of the server session.
