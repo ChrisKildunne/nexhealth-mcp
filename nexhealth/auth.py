@@ -7,8 +7,14 @@ import urllib.error
 import nexhealth.session as _session
 from nexhealth.config import BASE_URL, USER_AGENT
 
-_KEYCHAIN_SERVICE = "nexhealth-mcp"
-_KEYCHAIN_USERNAME = "NEXHEALTH_API_KEY"
+# These match what the macOS `security` CLI uses:
+#   security add-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w "..."
+#   security find-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w
+#
+# Using the same service/username means `keyring` and the `security` CLI
+# read from and write to the exact same keychain entry.
+_KEYCHAIN_SERVICE  = "NEXHEALTH_API_KEY"
+_KEYCHAIN_USERNAME = os.environ.get("USER", "")
 
 
 def _get_api_key() -> str:
@@ -21,7 +27,9 @@ def _get_api_key() -> str:
          (DPAPI/TPM-backed), or Linux Secret Service / GNOME Keyring.
 
     To store the key in the system keychain, run:
-        python -m nexhealth setup
+        nexhealth-mcp setup
+    Or via the macOS security CLI directly:
+        security add-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w "your_key"
     """
     # 1. Environment variable (highest priority)
     env_key = os.environ.get("NEXHEALTH_API_KEY", "").strip()
@@ -40,11 +48,11 @@ def _get_api_key() -> str:
     raise RuntimeError(
         "NexHealth API key not found.\n\n"
         "Store it in your system keychain (recommended):\n"
-        "    python -m nexhealth setup\n\n"
+        "    nexhealth-mcp setup\n\n"
+        "Or via the macOS security CLI:\n"
+        "    security add-generic-password -a \"$USER\" -s \"NEXHEALTH_API_KEY\" -w \"your_key\"\n\n"
         "Or set the environment variable:\n"
-        "    export NEXHEALTH_API_KEY=your_key_here\n\n"
-        "For network secrets providers (Vault, AWS Secrets Manager, etc.), "
-        "inject the key as NEXHEALTH_API_KEY before starting the server."
+        "    export NEXHEALTH_API_KEY=your_key_here\n"
     )
 
 

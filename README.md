@@ -1,55 +1,71 @@
 # NexHealth MCP Server
-
 Exposes the NexHealth API as MCP tools so Claude (or any MCP-compatible agent) can book appointments, manage patients, check availability, and guide developers through setup — conversationally, without writing any API code.
 
 ---
 
-## Quickstart (recommended — no manual venv needed)
+## Quickstart (recommended)
 
 ```bash
-# 1. Install uv if you don't have it
+# 1. Clone the repo
+git clone https://github.com/ChrisKildunne/nexhealth-mcp.git
+cd nexhealth-mcp
+
+# 2. Install uv if you don't have it
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 2. Run the setup wizard — stores your API key and generates config.yaml
-uv run nexhealth-mcp init
+# 3. Install dependencies and register the nexhealth-mcp command
+uv sync
 
-# 3. Point Claude Desktop at the start script (see below)
-# 4. Restart Claude Desktop — done
+# 4. Run the setup wizard — stores your API key and generates config.yaml
+nexhealth-mcp init
+
+# 5. Point Claude Desktop at the start script (see below)
+
+# 6. Restart Claude Desktop — done
 ```
 
 **Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-
 ```json
 {
   "mcpServers": {
     "nexhealth": {
-      "command": "/Users/YOUR_USERNAME/Nexhealth/nexhealth-mcp-start.sh",
+      "command": "/Users/YOUR_USERNAME/nexhealth/nexhealth-mcp-start.sh",
       "args": []
     }
   }
 }
 ```
 
+Replace `YOUR_USERNAME` with your Mac username.
+
 Full setup walkthrough: **[docs/setup.md](docs/setup.md)**
 
 ---
 
-## Alternative install (uv tool)
+## API Key Storage
 
+Your API key is stored securely in your system keychain — never in any file.
+
+**Store via setup wizard (recommended):**
 ```bash
-# Install from this repo as a local uv tool
-uv tool install .
+nexhealth-mcp setup
+```
 
-# Run directly
-nexhealth-mcp
+**Or via the macOS security CLI directly:**
+```bash
+security add-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w "your_api_key_here"
+```
 
-# Or without installing
-uv run nexhealth-mcp
+Both methods store the key in the same place. The start script reads it automatically at runtime.
+
+**Verify your key is stored:**
+```bash
+security find-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w
 ```
 
 ---
 
-## Manual install (pip)
+## Alternative install (pip)
 
 ```bash
 pip install -r requirements.txt
@@ -83,13 +99,13 @@ python server.py
 ## Booking flow (what Claude does automatically)
 
 ```
-list_institutions  → select_institution
-list_locations     → select_location
-search_patients    → find patient_id
-list_providers     → find provider_id
+list_institutions   → select_institution
+list_locations      → select_location
+search_patients     → find patient_id
+list_providers      → find provider_id
 get_available_slots → pick a slot (time + operatory_id)
-book_appointment   → POST the appointment
-get_appointment    → verify PMS sync status
+book_appointment    → POST the appointment
+get_appointment     → verify PMS sync status
 ```
 
 ---
@@ -98,9 +114,35 @@ get_appointment    → verify PMS sync status
 
 | Variable | Required | Description |
 |---|---|---|
-| `NEXHEALTH_API_KEY` | Yes | Your NexHealth API key |
+| `NEXHEALTH_API_KEY` | Yes | Your NexHealth API key (overrides keychain if set) |
 | `NEXHEALTH_SUBDOMAIN` | No | Skip institution selection; use this subdomain directly |
 | `NEXHEALTH_TIMEZONE_OVERRIDE` | No | Override state-derived timezone (e.g. `America/New_York` for Eastern TN) |
+
+---
+
+## Troubleshooting
+
+**`nexhealth-mcp` command not found**
+Run `uv sync` from the repo root first. This installs dependencies and registers the command.
+
+**SSL: CERTIFICATE_VERIFY_FAILED**
+Your Python installation is missing macOS SSL certificates. Fix it:
+```bash
+/Applications/Python\ 3.x/Install\ Certificates.command
+# or
+pip install certifi
+```
+Then re-run the start script.
+
+**Invalid Credentials (401)**
+Verify your API key is stored and correct:
+```bash
+security find-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w
+```
+If the key looks wrong, re-run `nexhealth-mcp setup`.
+
+**Claude doesn't see NexHealth tools**
+Fully quit Claude Desktop (`Cmd+Q`) and relaunch. Check that `claude_desktop_config.json` points to the correct path.
 
 ---
 
