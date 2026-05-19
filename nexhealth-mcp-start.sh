@@ -14,4 +14,4 @@ if [ -z "$PYTHON" ]; then
     exit 1
 fi
 
-exec "$PYTHON" "$HOME/Nexhealth/server.py"
+exec "$PYTHON" "$HOME/nexhealth/server.py"
