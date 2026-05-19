@@ -6,6 +6,7 @@ Commands:
     nexhealth-mcp init      First-time setup wizard — generates config.yaml and stores API key
     nexhealth-mcp setup     Store (or update) your API key in the system keychain
 """
+import os
 import sys
 
 
@@ -36,36 +37,51 @@ def _ask_yes_no(prompt: str, default: bool = False) -> bool:
 
 def setup(quiet: bool = False) -> bool:
     """
-    Store (or update) the NexHealth API key in the system keychain.
+    Store (or update) the NexHealth API key in the macOS keychain via the
+    security CLI. This ensures full compatibility with the start script which
+    reads the key using the same CLI tool.
     Returns True if the key was stored, False if the user skipped/aborted.
     """
-    try:
-        import keyring
-    except ImportError:
-        print("Error: keyring is not installed. Run: pip install keyring")
-        sys.exit(1)
+    import subprocess
+    import getpass
 
-    from nexhealth.auth import _KEYCHAIN_SERVICE, _KEYCHAIN_USERNAME
+    SERVICE  = "NEXHEALTH_API_KEY"
+    USERNAME = os.environ.get("USER", "")
 
     if not quiet:
-        print(f"  Keychain backend: {keyring.get_keyring().__class__.__name__}")
-        print()
-
-    existing = keyring.get_password(_KEYCHAIN_SERVICE, _KEYCHAIN_USERNAME)
-    if existing:
-        if not quiet:
+        # Check if a key already exists
+        result = subprocess.run(
+            ["security", "find-generic-password", "-a", USERNAME, "-s", SERVICE, "-w"],
+            capture_output=True, text=True
+        )
+        existing = result.returncode == 0 and result.stdout.strip()
+        if existing:
             print("  An API key is already stored in the keychain.")
-        if not _ask_yes_no("  Overwrite it?", default=False):
-            print("  Keeping existing key.")
-            return False
+            if not _ask_yes_no("  Overwrite it?", default=False):
+                print("  Keeping existing key.")
+                return False
 
-    import getpass
     api_key = getpass.getpass("  Paste your NexHealth API key (input hidden): ").strip()
     if not api_key:
         print("  No key entered — skipping.")
         return False
 
-    keyring.set_password(_KEYCHAIN_SERVICE, _KEYCHAIN_USERNAME, api_key)
+    # Delete existing entry first (ignore error if it doesn't exist)
+    subprocess.run(
+        ["security", "delete-generic-password", "-a", USERNAME, "-s", SERVICE],
+        capture_output=True
+    )
+
+    # Store the new key via the security CLI
+    result = subprocess.run(
+        ["security", "add-generic-password", "-a", USERNAME, "-s", SERVICE, "-w", api_key],
+        capture_output=True, text=True
+    )
+
+    if result.returncode != 0:
+        print(f"  Error storing key: {result.stderr.strip()}")
+        return False
+
     print("  API key stored. ✓")
     return True
 
@@ -75,8 +91,16 @@ def init() -> None:
     from pathlib import Path
     import yaml  # pyyaml is a required dep
 
-    config_path = Path(__file__).parent.parent / "config.yaml"
+    config_path  = Path(__file__).parent.parent / "config.yaml"
     example_path = Path(__file__).parent.parent / "config.yaml.example"
+
+    # When installed as a uv tool, config lives next to the start script
+    # in ~/nexhealth/ rather than in the package directory.
+    home_config = Path.home() / "nexhealth" / "config.yaml"
+    home_example = Path.home() / "nexhealth" / "config.yaml.example"
+    if home_example.exists():
+        config_path  = home_config
+        example_path = home_example
 
     print()
     print(_hr("═"))
@@ -132,7 +156,7 @@ def init() -> None:
     # Validate the timezone if provided
     if timezone_override:
         try:
-            from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+            from zoneinfo import ZoneInfo
             ZoneInfo(timezone_override)
             print(f"  Timezone '{timezone_override}' recognised. ✓")
         except Exception:
@@ -145,12 +169,10 @@ def init() -> None:
     print()
     print(_hr())
 
-    # Load the example as the base so all comments are preserved
     if example_path.exists():
         with open(example_path, encoding="utf-8") as f:
             raw_example = f.read()
 
-        # Substitute values directly in the YAML text to preserve comments
         def _set_value(text: str, key: str, value: str) -> str:
             import re
             return re.sub(
@@ -169,7 +191,6 @@ def init() -> None:
         with open(config_path, "w", encoding="utf-8") as f:
             f.write(output)
     else:
-        # Fallback: write a minimal config if the example is missing
         config = {
             "nexhealth": {"subdomain": subdomain},
             "server": {
@@ -187,9 +208,15 @@ def init() -> None:
     print(_hr("═"))
     print("  Setup complete.")
     print()
-    print("  Start the server:  nexhealth-mcp")
-    print("  Update API key:    nexhealth-mcp setup")
-    print("  Re-run wizard:     nexhealth-mcp init")
+    print("  Next steps:")
+    print("  1. Add the start script to your Claude Desktop config")
+    print("     (see README for the exact path and JSON)")
+    print("  2. Fully quit Claude Desktop (Cmd+Q)")
+    print("  3. Relaunch Claude Desktop")
+    print('  4. Ask Claude: "Can you list my NexHealth institutions?"')
+    print()
+    print("  Update API key:  nexhealth-mcp setup")
+    print("  Re-run wizard:   nexhealth-mcp init")
     print(_hr("═"))
     print()
 
