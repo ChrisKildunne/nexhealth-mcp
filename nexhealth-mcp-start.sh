@@ -5,7 +5,7 @@
 # To store your key: python -m nexhealth setup
 #
 # Optional env var overrides (uncomment and fill in to use):
-# export NEXHEALTH_API_KEY="your_key"          # skips keychain lookup
+export NEXHEALTH_API_KEY=$(security find-generic-password -a "$USER" -s "NEXHEALTH_API_KEY" -w)          # skips keychain lookup
 # export NEXHEALTH_SUBDOMAIN="your-subdomain"  # skips institution selection
 
 PYTHON=$(command -v python3)
