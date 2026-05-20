@@ -7,45 +7,50 @@ from nexhealth.content_loader import (
 )
 from nexhealth.tools._decorator import _tool
 
-# Map of natural-language aliases → workflow file stems.
-# Lets Claude match "book appointment", "booking", "schedule" etc. to the right file.
 _WORKFLOW_ALIASES = {
     # book appointment
-    "book":                "book_appointment",
-    "booking":             "book_appointment",
-    "schedule":            "book_appointment",
-    "book appointment":    "book_appointment",
-    "book_appointment":    "book_appointment",
+    "book":                        "book_appointment",
+    "booking":                     "book_appointment",
+    "schedule":                    "book_appointment",
+    "book appointment":            "book_appointment",
+    "book_appointment":            "book_appointment",
     # create patient
-    "create patient":      "create_patient",
-    "create_patient":      "create_patient",
-    "new patient":         "create_patient",
-    "add patient":         "create_patient",
+    "create patient":              "create_patient",
+    "create_patient":              "create_patient",
+    "new patient":                 "create_patient",
+    "add patient":                 "create_patient",
     # working hours
-    "working hour":        "create_working_hour",
-    "working hours":       "create_working_hour",
-    "create_working_hour": "create_working_hour",
-    "availability":        "create_working_hour",
+    "working hour":                "create_working_hour",
+    "working hours":               "create_working_hour",
+    "create_working_hour":         "create_working_hour",
+    "availability":                "create_working_hour",
+    # appointment types
+    "appointment type":            "create_appointment_type",
+    "appointment types":           "create_appointment_type",
+    "create appointment type":     "create_appointment_type",
+    "create_appointment_type":     "create_appointment_type",
+    "descriptors":                 "create_appointment_type",
+    "procedure codes":             "create_appointment_type",
     # patch / update appointment
-    "patch":               "patch_appointment",
-    "patch appointment":   "patch_appointment",
-    "patch_appointment":   "patch_appointment",
-    "confirm":             "patch_appointment",
-    "cancel":              "patch_appointment",
-    "reschedule":          "patch_appointment",
-    "check in":            "patch_appointment",
-    "checkin":             "patch_appointment",
+    "patch":                       "patch_appointment",
+    "patch appointment":           "patch_appointment",
+    "patch_appointment":           "patch_appointment",
+    "confirm":                     "patch_appointment",
+    "cancel":                      "patch_appointment",
+    "reschedule":                  "patch_appointment",
+    "check in":                    "patch_appointment",
+    "checkin":                     "patch_appointment",
     # session setup
-    "session":             "session_setup",
-    "session setup":       "session_setup",
-    "session_setup":       "session_setup",
-    "setup":               "session_setup",
-    "get started":         "session_setup",
+    "session":                     "session_setup",
+    "session setup":               "session_setup",
+    "session_setup":               "session_setup",
+    "setup":                       "session_setup",
+    "get started":                 "session_setup",
     # troubleshooting
-    "troubleshoot":        "troubleshoot",
-    "error":               "troubleshoot",
-    "debug":               "troubleshoot",
-    "help":                "troubleshoot",
+    "troubleshoot":                "troubleshoot",
+    "error":                       "troubleshoot",
+    "debug":                       "troubleshoot",
+    "help":                        "troubleshoot",
 }
 
 
@@ -128,16 +133,16 @@ def get_workflow(task: str = None) -> str:
     Args:
         task: The task or workflow to retrieve. Accepts natural language or exact names.
               Examples: "book appointment", "create patient", "working hours",
-              "patch", "cancel", "reschedule", "check in", "session setup",
-              "troubleshoot", "error"
+              "appointment type", "patch", "cancel", "session setup", "troubleshoot"
 
     Available workflows:
-        "book_appointment"    — Full booking flow: patient → provider → slots → confirm → book
-        "create_patient"      — Create a new patient with duplicate checking
-        "create_working_hour" — Set up provider availability (recurring, one-off, or custom)
-        "patch_appointment"   — Confirm, cancel, check in, or reschedule an appointment
-        "session_setup"       — Establish institution and location at session start
-        "troubleshoot"        — Error code reference and debugging steps
+        "book_appointment"        — Full booking flow: patient → provider → slots → confirm → book
+        "create_patient"          — Create a new patient with duplicate checking
+        "create_working_hour"     — Set up provider availability (recurring, one-off, or custom)
+        "create_appointment_type" — Create appointment types and associate descriptors
+        "patch_appointment"       — Confirm, cancel, check in, or reschedule an appointment
+        "session_setup"           — Establish institution and location at session start
+        "troubleshoot"            — Error code reference and debugging steps
 
     When to call this tool:
         - At the start of any booking, creation, or update operation
@@ -164,7 +169,6 @@ def get_workflow(task: str = None) -> str:
     key = _WORKFLOW_ALIASES.get(task.strip().lower()) or task.strip().lower()
 
     if key not in WORKFLOWS:
-        # Fuzzy fallback — check if task is a substring of any known key
         matches = [k for k in WORKFLOWS if task.lower() in k or k in task.lower()]
         if len(matches) == 1:
             key = matches[0]
