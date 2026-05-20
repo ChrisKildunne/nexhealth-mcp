@@ -1,80 +1,108 @@
-# Workflow: Create an Appointment Type
+# Workflow: Create and Configure Appointment Types
 
 ## What is an Appointment Type?
 
 Appointment types are a **NexHealth construct** — they are not read from or written
-to the connected PMS/EHR. They define what kinds of appointments providers offer
-and are used to control what patients can book and when.
+to the connected PMS/EHR directly. They define what kinds of appointments providers
+offer and are used to control what patients can book and when.
 
-They are most useful when manually configuring provider schedules (working hours).
-By associating appointment types with working hours you can:
-- Control what kinds of appointments a provider offers
-- Control when specific appointment types are available
-  (e.g. "New Patient" only available 9am-12pm on Mondays)
+Think of a NexHealth appointment type as a **logical bundle** — it groups together:
+- A name and duration (e.g. "Cleaning", 60 minutes)
+- One or more EMR appointment descriptors (procedure codes or EHR-specific types)
+- Association with specific working hours (controls when it's bookable)
 
-### Scope — Institution vs Location
-
-By default, appointment types are created at the **Institution level** — meaning
-they are accessible across all locations. If you need to scope an appointment type
-to a single location, set parent_type="Location".
-
-### Relationship to Working Hours
-
-After creating an appointment type, associate it with a working hour by passing
-the appointment_type_id when calling create_working_hour(). This controls when
-that appointment type is available for booking.
-
-### Relationship to Appointments
-
-When booking an appointment with an appointment_type_id, any EMR descriptors
-associated with that type are automatically added to the appointment when it
-is created in the health record system.
+When an appointment is booked with an `appointment_type_id`, any descriptors
+linked to that type are **automatically written to the PMS/EHR**, ensuring the
+practice has the correct procedure codes and billing information.
 
 ---
 
-## Required Session State
-Confirm with current_session() that active_subdomain is set.
-Location is not required for institution-level appointment types.
+## What are Appointment Descriptors?
+
+Appointment descriptors are synced FROM the PMS/EHR — they cannot be created
+via the API. There are two types:
+
+**Procedure Codes** — CDT codes (dental) or CPT codes (medical)
+Example: "Composite-2 Surf, Posterior" / code "T5833"
+Supported PMS: Cloud9, Denticon, Dentrix, Dentrix Ascend, Dentrix Enterprise,
+Eaglesoft, Open Dental, Orthotrac
+
+**EHR-specific Appointment Types** — appointment categories in specific systems
+Example: "NEW PRIMARY CARE VISIT" / code "NPR"
+Supported PMS: athenahealth, Cloud9, Dentrix, Dentrix Enterprise, Eaglesoft,
+eClinicalWorks, Open Dental, NextGen, Modmed, Orthotrac
+
+Use list_appointment_descriptors() to see all descriptors available at the
+session location. Pass their IDs as emr_appt_descriptor_ids when creating or
+updating an appointment type.
 
 ---
 
-## Step-by-Step Flow
+## Scope — Institution vs Location
 
-### 1. Collect Required Information
-You must have both of the following:
+By default, appointment types are created at the **Institution level** — accessible
+across all locations. To scope to a single location, set parent_type="Location"
+and provide both location_id and parent_id.
+
+---
+
+## Full End-to-End Flow
+
+### Step 1 — List Available Descriptors (optional but recommended)
+Call list_appointment_descriptors() to see what procedure codes and EHR-specific
+types are available at the location. Show these to the developer so they can
+decide which to associate.
+
+Filter by type if needed:
+- list_appointment_descriptors(descriptor_type="Procedure Codes")
+- list_appointment_descriptors(descriptor_type="Appointment Type")
+
+### Step 2 — Collect Required Information
 
 | Field | Notes |
 |---|---|
-| name | Unique string identifier for this appointment type (required) |
-| minutes | Duration in minutes — must be in increments of 5 (required) |
+| name | Unique string identifier (required) |
+| minutes | Duration in minutes, must be multiple of 5 (required) |
 
-If the user provides a minutes value that is not a multiple of 5, round to the
-nearest 5 and confirm with them before proceeding.
+If the user provides minutes that is not a multiple of 5, round to the nearest
+5 and confirm before proceeding.
 
-### 2. Collect Optional Information
+### Step 3 — Collect Optional Information
 
 | Field | Notes |
 |---|---|
-| bookable_online | Whether patients can book this type online (default False) |
+| bookable_online | Whether patients can book online (default False) |
 | parent_type | "Institution" (default) or "Location" |
 | location_id | Required only if parent_type is "Location" |
-| parent_id | Required only if parent_type is "Location" — use the location_id value |
-| emr_appt_descriptor_ids | List of EMR descriptor IDs to auto-attach to appointments |
+| parent_id | Required only if parent_type is "Location" — use location_id value |
+| emr_appt_descriptor_ids | List of descriptor IDs from list_appointment_descriptors() |
 
-### 3. Confirm Before Creating
+### Step 4 — Confirm Before Creating
 Summarise and ask the user to confirm:
 
   Name:            [name]
   Duration:        [minutes] minutes
   Scope:           [Institution / Location]
   Bookable online: [Yes / No]
+  Descriptors:     [list of descriptor names, or "None"]
 
-### 4. Create the Appointment Type
+### Step 5 — Create the Appointment Type
 Call create_appointment_type() with all collected fields.
 
-On success, present the returned appointment type ID. Remind the user that
-to make this type available for booking they should associate it with a
-working hour using create_working_hour(appointment_type_ids=[id]).
+### Step 6 — Associate with Working Hours
+Remind the developer: to make this appointment type available for booking,
+associate it with a working hour by passing appointment_type_ids=[id] when
+calling create_working_hour(). This controls when the type is available.
+
+---
+
+## Updating an Existing Appointment Type
+
+To add or update descriptors on an existing appointment type, call
+patch_appointment_type(appointment_type_id=..., emr_appt_descriptor_ids=[...]).
+
+IMPORTANT: emr_appt_descriptor_ids REPLACES the existing list entirely.
+Always include all IDs you want associated — not just the new ones.
 
 ---
 
@@ -82,6 +110,21 @@ working hour using create_working_hour(appointment_type_ids=[id]).
 
 | Error | Cause | Fix |
 |---|---|---|
-| Validation error — minutes | Not a multiple of 5 | Round to nearest 5 and confirm with user |
-| 422 — name already exists | An appointment type with this name exists | Choose a different name or list existing types with list_appointment_types() |
-| Validation error — location fields | parent_type is Location but location_id or parent_id missing | Provide both location_id and parent_id |
+| Validation — minutes not multiple of 5 | e.g. 17 minutes passed | Round to nearest 5 and confirm |
+| 422 — name already exists | Duplicate name at this scope | Choose a different name or list existing types |
+| Validation — location fields missing | parent_type is Location but location_id or parent_id missing | Provide both |
+| No descriptors returned | PMS may not support descriptors, or none synced yet | Check supported PMS list above |
+
+---
+
+## Important: When Are Descriptors Written to the PMS?
+
+Descriptor writes are **synchronous** — they happen at the exact moment the
+appointment is created, not on a sync cycle.
+
+This means:
+- When POST /appointments is called with an appointment_type_id, the associated
+  descriptors are written to the PMS immediately as part of that same operation
+- The developer does not need to wait for a sync cycle to verify descriptors
+- If you call get_appointment() immediately after booking, the descriptors
+  should already be present on the appointment in the PMS

@@ -92,3 +92,18 @@ confirms the foreign_id_type no longer starts with "Nex".
 When listing appointments, records with unavailable=true and no patient_id are
 UNAVAILABLE BLOCKS — blocked time slots, not patient appointments. Always label
 these clearly as [Unavailable Block] when presenting results to the user.
+
+---
+
+## Descriptor Writes Are Synchronous
+
+If an appointment_type_id is passed when booking, any EMR descriptors (procedure
+codes or EHR-specific appointment types) associated with that appointment type
+are written to the PMS **at the same time the appointment is created** — not on
+a sync cycle.
+
+This means:
+- Descriptors appear in the PMS immediately, not after a delay
+- Do NOT tell the developer to wait for a sync — it's already done
+- Call get_appointment() immediately after booking to verify descriptors
+  are present on the appointment
