@@ -46,7 +46,21 @@ _WORKFLOW_ALIASES = {
     "session_setup":               "session_setup",
     "setup":                       "session_setup",
     "get started":                 "session_setup",
-    # troubleshooting
+    # sandbox troubleshooting
+    "reads writes":                "troubleshoot_sandbox",
+    "read only":                   "troubleshoot_sandbox",
+    "showing read":                "troubleshoot_sandbox",
+    "connection severed":          "troubleshoot_sandbox",
+    "synchronizer not running":    "troubleshoot_sandbox",
+    "sandbox issue":               "troubleshoot_sandbox",
+    "sandbox problem":             "troubleshoot_sandbox",
+    "sandbox troubleshoot":        "troubleshoot_sandbox",
+    "additional location":         "troubleshoot_sandbox",
+    "additional sync":             "troubleshoot_sandbox",
+    "create new sync":             "troubleshoot_sandbox",
+    "greyed out":                  "troubleshoot_sandbox",
+    "new sync":                    "troubleshoot_sandbox",
+    # general troubleshooting
     "troubleshoot":                "troubleshoot",
     "error":                       "troubleshoot",
     "debug":                       "troubleshoot",
@@ -143,6 +157,7 @@ def get_workflow(task: str = None) -> str:
         "patch_appointment"       — Confirm, cancel, check in, or reschedule an appointment
         "session_setup"           — Establish institution and location at session start
         "troubleshoot"            — Error code reference and debugging steps
+        "troubleshoot_sandbox"    — Sandbox-specific issues and common questions
 
     When to call this tool:
         - At the start of any booking, creation, or update operation
