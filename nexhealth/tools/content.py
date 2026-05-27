@@ -46,6 +46,14 @@ _WORKFLOW_ALIASES = {
     "session_setup":               "session_setup",
     "setup":                       "session_setup",
     "get started":                 "session_setup",
+    # sync status — works for both sandbox and production
+    "sync status":                 "troubleshoot",
+    "get sync status":             "troubleshoot",
+    "sync status red":             "troubleshoot",
+    "sync status green":           "troubleshoot",
+    "is my sync working":          "troubleshoot",
+    "check sync":                  "troubleshoot",
+    "sync health":                 "troubleshoot",
     # sandbox troubleshooting
     "reads writes":                "troubleshoot_sandbox",
     "read only":                   "troubleshoot_sandbox",
@@ -60,6 +68,27 @@ _WORKFLOW_ALIASES = {
     "create new sync":             "troubleshoot_sandbox",
     "greyed out":                  "troubleshoot_sandbox",
     "new sync":                    "troubleshoot_sandbox",
+    # pms / ehr support
+    "pms":                         "pms_support",
+    "ehr":                         "pms_support",
+    "supported pms":               "pms_support",
+    "supported ehr":               "pms_support",
+    "pms support":                 "pms_support",
+    "ehr support":                 "pms_support",
+    "integration parity":          "pms_support",
+    "does nexhealth support":      "pms_support",
+    "which pms":                   "pms_support",
+    "which ehr":                   "pms_support",
+    "dentrix":                     "pms_support",
+    "open dental":                 "pms_support",
+    "eaglesoft":                   "pms_support",
+    "denticon":                    "pms_support",
+    "athena":                      "pms_support",
+    "modmed":                      "pms_support",
+    "eclinicalworks":              "pms_support",
+    "cloud9":                      "pms_support",
+    "reschedule":                  "pms_support",
+    "clinical notes":              "pms_support",
     # general troubleshooting
     "troubleshoot":                "troubleshoot",
     "error":                       "troubleshoot",
@@ -158,6 +187,7 @@ def get_workflow(task: str = None) -> str:
         "session_setup"           — Establish institution and location at session start
         "troubleshoot"            — Error code reference and debugging steps
         "troubleshoot_sandbox"    — Sandbox-specific issues and common questions
+        "pms_support"             — PMS/EHR integration parity and feature support
 
     When to call this tool:
         - At the start of any booking, creation, or update operation
