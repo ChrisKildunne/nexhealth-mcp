@@ -8,5 +8,6 @@ from nexhealth.tools import (  # noqa: F401
     appointments,
     operatories,
     working_hours,
+    sync,
     content,
 )
